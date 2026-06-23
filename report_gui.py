@@ -75,7 +75,7 @@ class ReportApp:
         self.risk_save_dir = tk.StringVar(value=risk_dir if risk_dir and os.path.isdir(risk_dir) else cwd)
         self.risk_issue_number = saved.get("risk_issue_number", 1)
         lzy_dir = saved.get("lzy_save_dir", "")
-        self.lzy_save_dir = tk.StringVar(value=lzy_dir if lzy_dir and os.path.isdir(lzy_dir) else cwd)
+        self.lzy_save_dir = tk.StringVar(value=lzy_dir if lzy_dir else cwd)
 
         # ---------- 主布局 ----------
         main_panel = ttk.Frame(root)
@@ -86,10 +86,46 @@ class ReportApp:
         self.right_frame.pack(side="right", fill="y", padx=(10, 0))
         self.build_station_panel(self.right_frame)
 
+        # ---------- 所有保存栏（先创建，避免标签页切换事件中引用未创建对象） ----------
+        self.save_bar_pre = ttk.Frame(root)
+        ttk.Label(self.save_bar_pre, text="保存目录：").pack(side="left")
+        self.entry_save_pre = ttk.Entry(self.save_bar_pre, textvariable=self.pre_save_dir, width=32)
+        self.entry_save_pre.pack(side="left", padx=5)
+        ttk.Button(self.save_bar_pre, text="浏览...", command=self.browse_folder_pre).pack(side="left", padx=3)
+        ttk.Button(self.save_bar_pre, text="✨ 生成 TXT 文件", command=self.generate_pre_report, style="Accent.TButton").pack(side="right", padx=5)
+
+        self.save_bar_weather = ttk.Frame(root)
+        ttk.Label(self.save_bar_weather, text="保存目录：").pack(side="left")
+        self.entry_save_weather = ttk.Entry(self.save_bar_weather, textvariable=self.weather_save_dir, width=32)
+        self.entry_save_weather.pack(side="left", padx=5)
+        ttk.Button(self.save_bar_weather, text="浏览...", command=self.browse_folder_weather).pack(side="left", padx=3)
+        ttk.Button(self.save_bar_weather, text="✨ 生成 TXT 文件", command=self.generate_weather_alert, style="Accent.TButton").pack(side="right", padx=5)
+
+        self.save_bar_risk = ttk.Frame(root)
+        ttk.Label(self.save_bar_risk, text="保存目录：").pack(side="left")
+        self.entry_save_risk = ttk.Entry(self.save_bar_risk, textvariable=self.risk_save_dir, width=32)
+        self.entry_save_risk.pack(side="left", padx=5)
+        ttk.Button(self.save_bar_risk, text="浏览...", command=self.browse_folder_risk).pack(side="left", padx=3)
+        ttk.Button(self.save_bar_risk, text="📄 生成 Word 文档", command=self.generate_risk_alert, style="Accent.TButton").pack(side="right", padx=5)
+
+        self.save_bar_live = ttk.Frame(root)
+        ttk.Label(self.save_bar_live, text="保存目录：").pack(side="left")
+        self.entry_save_live = ttk.Entry(self.save_bar_live, textvariable=self.live_save_dir, width=32)
+        self.entry_save_live.pack(side="left", padx=5)
+        ttk.Button(self.save_bar_live, text="浏览...", command=self.browse_folder_live).pack(side="left", padx=3)
+        ttk.Button(self.save_bar_live, text="✨ 生成 TXT 文件", command=self.generate_live_report, style="Accent.TButton").pack(side="right", padx=5)
+
+        self.save_bar_lzy = ttk.Frame(root)
+        ttk.Label(self.save_bar_lzy, text="保存目录：").pack(side="left")
+        self.entry_save_lzy = ttk.Entry(self.save_bar_lzy, textvariable=self.lzy_save_dir, width=32)
+        self.entry_save_lzy.pack(side="left", padx=5)
+        ttk.Button(self.save_bar_lzy, text="浏览...", command=self._browse_lzy_dir).pack(side="left", padx=3)
+        ttk.Button(self.save_bar_lzy, text="📊 写入 Excel", command=self._lzy_write_excel,
+                   style="Accent.TButton").pack(side="right", padx=5)
+
         # ---------- 标签页（Notebook） ----------
         self.notebook = ttk.Notebook(main_panel)
         self.notebook.pack(side="left", fill="both", expand=True)
-        self.notebook.bind("<<NotebookTabChanged>>", self.on_tab_changed)
 
         # 首页标签页（纯展示文档）
         tab_home = ttk.Frame(self.notebook)
@@ -136,47 +172,8 @@ class ReportApp:
         self.notebook.add(tab_svc, text="📝 服务记录")
         self.build_service_record(tab_svc)
 
-        # ---------- 预通报保存栏 ----------
-        self.save_bar_pre = ttk.Frame(root)
-        # 初始隐藏（首页是默认标签页）
-        ttk.Label(self.save_bar_pre, text="保存目录：").pack(side="left")
-        self.entry_save_pre = ttk.Entry(self.save_bar_pre, textvariable=self.pre_save_dir, width=32)
-        self.entry_save_pre.pack(side="left", padx=5)
-        ttk.Button(self.save_bar_pre, text="浏览...", command=self.browse_folder_pre).pack(side="left", padx=3)
-        ttk.Button(self.save_bar_pre, text="✨ 生成 TXT 文件", command=self.generate_pre_report, style="Accent.TButton").pack(side="right", padx=5)
-
-        # ---------- 天气提醒保存栏（初始隐藏） ----------
-        self.save_bar_weather = ttk.Frame(root)
-        ttk.Label(self.save_bar_weather, text="保存目录：").pack(side="left")
-        self.entry_save_weather = ttk.Entry(self.save_bar_weather, textvariable=self.weather_save_dir, width=32)
-        self.entry_save_weather.pack(side="left", padx=5)
-        ttk.Button(self.save_bar_weather, text="浏览...", command=self.browse_folder_weather).pack(side="left", padx=3)
-        ttk.Button(self.save_bar_weather, text="✨ 生成 TXT 文件", command=self.generate_weather_alert, style="Accent.TButton").pack(side="right", padx=5)
-
-        # ---------- 气象灾害风险提示单保存栏（初始隐藏） ----------
-        self.save_bar_risk = ttk.Frame(root)
-        ttk.Label(self.save_bar_risk, text="保存目录：").pack(side="left")
-        self.entry_save_risk = ttk.Entry(self.save_bar_risk, textvariable=self.risk_save_dir, width=32)
-        self.entry_save_risk.pack(side="left", padx=5)
-        ttk.Button(self.save_bar_risk, text="浏览...", command=self.browse_folder_risk).pack(side="left", padx=3)
-        ttk.Button(self.save_bar_risk, text="📄 生成 Word 文档", command=self.generate_risk_alert, style="Accent.TButton").pack(side="right", padx=5)
-
-        # ---------- 实况通报保存栏（初始隐藏） ----------
-        self.save_bar_live = ttk.Frame(root)
-        ttk.Label(self.save_bar_live, text="保存目录：").pack(side="left")
-        self.entry_save_live = ttk.Entry(self.save_bar_live, textvariable=self.live_save_dir, width=32)
-        self.entry_save_live.pack(side="left", padx=5)
-        ttk.Button(self.save_bar_live, text="浏览...", command=self.browse_folder_live).pack(side="left", padx=3)
-        ttk.Button(self.save_bar_live, text="✨ 生成 TXT 文件", command=self.generate_live_report, style="Accent.TButton").pack(side="right", padx=5)
-
-        # ---------- 两直一白保存栏（初始隐藏） ----------
-        self.save_bar_lzy = ttk.Frame(root)
-        ttk.Label(self.save_bar_lzy, text="保存目录：").pack(side="left")
-        self.entry_save_lzy = ttk.Entry(self.save_bar_lzy, textvariable=self.lzy_save_dir, width=32)
-        self.entry_save_lzy.pack(side="left", padx=5)
-        ttk.Button(self.save_bar_lzy, text="浏览...", command=self._browse_lzy_dir).pack(side="left", padx=3)
-        ttk.Button(self.save_bar_lzy, text="📊 写入 Excel", command=self._lzy_write_excel,
-                   style="Accent.TButton").pack(side="right", padx=5)
+        # 标签页切换绑定（放在所有标签页和保存栏创建之后）
+        self.notebook.bind("<<NotebookTabChanged>>", self.on_tab_changed)
 
         # ---------- 全局鼠标滚轮处理 ----------
         self._setup_global_wheel()
@@ -205,6 +202,8 @@ class ReportApp:
                     self._wheel_canvases[i] = self.pre_canvas
                 elif "实况通报" in tab_text and hasattr(self, 'live_canvas'):
                     self._wheel_canvases[i] = self.live_canvas
+                elif "两直一白" in tab_text and hasattr(self, 'lzy_canvas'):
+                    self._wheel_canvases[i] = self.lzy_canvas
             self._wheel_map_built = True
 
         def _global_wheel(event):
@@ -243,10 +242,11 @@ class ReportApp:
                     "weather_save_dir": data.get("weather_save_dir", legacy),
                     "risk_save_dir": data.get("risk_save_dir", legacy),
                     "risk_issue_number": data.get("risk_issue_number", 1),
+                    "lzy_save_dir": data.get("lzy_save_dir", ""),
                 }
             except:
                 pass
-        return {"pre_save_dir": "", "live_save_dir": "", "svc_save_dir": "", "weather_save_dir": "", "risk_save_dir": "", "risk_issue_number": 1}
+        return {"pre_save_dir": "", "live_save_dir": "", "svc_save_dir": "", "weather_save_dir": "", "risk_save_dir": "", "risk_issue_number": 1, "lzy_save_dir": ""}
 
     def save_config(self):
         """保存目录配置"""
@@ -864,17 +864,57 @@ class ReportApp:
                 text_w.insert("1.0", block["content"])
             text_w.configure(state="disabled")
             # 自动调整高度：用 Tcl count -displaylines 计算含自动换行的真实行数
+            _view_height_busy = [False]
             def _view_auto_height(tw=text_w):
+                if _view_height_busy[0]:
+                    return
+                _view_height_busy[0] = True
                 try:
                     tw.update_idletasks()
-                    result = tw.tk.call(tw._w, 'count', '-displaylines', '1.0', 'end-1c')
-                    actual_lines = int(result) if result else int(tw.index("end-1c").split(".")[0])
-                except Exception:
-                    actual_lines = int(tw.index("end-1c").split(".")[0])
-                tw.configure(height=max(actual_lines + 1, 4))
+                    try:
+                        result = tw.tk.call(tw._w, 'count', '-displaylines', '1.0', 'end-1c')
+                        actual_lines = int(result) if result else int(tw.index("end-1c").split(".")[0])
+                    except Exception:
+                        actual_lines = int(tw.index("end-1c").split(".")[0])
+                    new_h = max(actual_lines + 1, 4)
+                    if int(tw.cget("height")) != new_h:
+                        tw.configure(height=new_h)
+                finally:
+                    _view_height_busy[0] = False
             _view_auto_height()
-            # 宽度变化时重新计算（因为自动换行会影响行数）
-            text_w.bind("<Configure>", lambda e: _view_auto_height() if e.widget == text_w and e.width > 10 else None)
+            text_w.bind("<Configure>", lambda e, tw=text_w: (None if e.widget != tw or e.width <= 10
+                else tw.after(80, _view_auto_height)))
+
+            # ---- 拖拽调整高度把手 ----
+            grip = tk.Frame(frm, height=6, cursor="sb_v_double_arrow", bg="#c0c8d0")
+            grip.pack(fill="x", pady=(2, 0))
+            _drag_grip = [False, 0, 0]  # [dragging, start_y, start_height]
+            def _grip_press(event):
+                _drag_grip[0] = True
+                _drag_grip[1] = event.y_root
+                _drag_grip[2] = int(text_w.cget("height"))
+            def _grip_move(event):
+                if not _drag_grip[0]:
+                    return
+                dy = event.y_root - _drag_grip[1]
+                new_h = max(3, _drag_grip[2] + dy // 16)
+                if int(text_w.cget("height")) != new_h:
+                    text_w.configure(height=new_h)
+                    # 取消自动高度（手动设置优先）
+                    text_w.unbind("<Configure>")
+            def _grip_stop(event):
+                _drag_grip[0] = False
+                # 保存手动高度到 block
+                block["_manual_height"] = int(text_w.cget("height"))
+            grip.bind("<ButtonPress-1>", _grip_press)
+            grip.bind("<B1-Motion>", _grip_move)
+            grip.bind("<ButtonRelease-1>", _grip_stop)
+            # 恢复手动高度
+            if block.get("_manual_height"):
+                try:
+                    text_w.configure(height=max(int(block["_manual_height"]), 3))
+                except Exception:
+                    pass
 
             # 编辑 / 删除按钮
             btn_row = ttk.Frame(frm)
@@ -907,7 +947,7 @@ class ReportApp:
                 current_text += item[1]
             elif item[0] == "tagon":
                 tname = item[1]
-                if current_text and current_tags:
+                if current_text:
                     segments.append({"text": current_text, "tags": list(current_tags)})
                     current_text = ""
                 current_tags.add(tname)
@@ -942,7 +982,7 @@ class ReportApp:
                         all_tag_configs[tname] = cfg
             elif item[0] == "tagoff":
                 tname = item[1]
-                if current_text and current_tags:
+                if current_text:
                     segments.append({"text": current_text, "tags": list(current_tags)})
                     current_text = ""
                 current_tags.discard(tname)
@@ -963,384 +1003,285 @@ class ReportApp:
         self._homepage_render_all()
 
     # ==================== 表格 block ====================
+    # ==================== 网格表格（Entry 网格） ====================
+    class _GridTable:
+        """基于 Entry 网格的表格，支持单元格独立着色"""
+        def __init__(self, parent, headers, rows, cell_styles=None, edit_mode=False):
+            self.parent = parent
+            self.headers = list(headers)
+            self.rows = [list(r) for r in rows]
+            self.edit_mode = edit_mode
+            self.cell_styles = cell_styles or {}
+            self.sel_cells = set()
+            self.anchor = None
+            self.ncols = len(headers)
+            self.nrows = len(rows)
+            self._drag_moved = False
+
+            self.frame = tk.Frame(parent, bg="#d0d0d0")
+            self._build()
+
+        def _build(self):
+            for w in self.frame.winfo_children():
+                w.destroy()
+            ncols = max(self.ncols, 1)
+            nrows = self.nrows
+            col_w = max(80, min(180, 900 // ncols))
+
+            # 表头
+            for ci in range(ncols):
+                h = self.headers[ci] if ci < len(self.headers) else f"列{ci + 1}"
+                if self.edit_mode:
+                    w = tk.Entry(self.frame, font=("微软雅黑", 11, "bold"),
+                                 justify="center", relief="flat", bg="#d9e1e8")
+                    w.insert(0, h)
+                else:
+                    w = tk.Label(self.frame, text=h, font=("微软雅黑", 11, "bold"),
+                                 bg="#d9e1e8", fg="#2c3e50", anchor="center")
+                w.grid(row=0, column=ci, sticky="nsew", padx=1, pady=1)
+                self.frame.columnconfigure(ci, weight=1, minsize=col_w)
+
+            # 数据行
+            for ri in range(nrows):
+                for ci in range(ncols):
+                    val = self.rows[ri][ci] if ci < len(self.rows[ri]) else ""
+                    style = self.cell_styles.get((ri, ci), {})
+                    if self.edit_mode:
+                        w = tk.Entry(self.frame, font=("微软雅黑", 11),
+                                     relief="flat", justify="left",
+                                     bg=style.get("bg", "white"),
+                                     fg=style.get("fg", "black"))
+                        w.insert(0, str(val))
+                        w.bind("<ButtonPress-1>", lambda e, r=ri, c=ci: self._on_press(r, c, e))
+                        w.bind("<B1-Motion>", lambda e, r=ri, c=ci: self._on_move(r, c))
+                        w.bind("<Button-3>", lambda e, r=ri, c=ci: self._on_right_click(r, c, e))
+                        w.bind("<Tab>", lambda e, r=ri, c=ci: self._on_tab(r, c))
+                        w.bind("<Shift-Tab>", lambda e, r=ri, c=ci: self._on_shift_tab(r, c))
+                    else:
+                        w = tk.Label(self.frame, text=str(val), font=("微软雅黑", 11),
+                                     bg=style.get("bg", "white"),
+                                     fg=style.get("fg", "#2c3e50"),
+                                     anchor="w", padx=4)
+                    w.grid(row=ri + 1, column=ci, sticky="nsew", padx=1, pady=1)
+
+        def _apply_selection(self):
+            for ri in range(self.nrows):
+                for ci in range(self.ncols):
+                    style = self.cell_styles.get((ri, ci), {})
+                    bg = "#cce5ff" if (ri, ci) in self.sel_cells else style.get("bg", "white")
+                    fg = style.get("fg", "black")
+                    for w in self.frame.grid_slaves(row=ri + 1, column=ci):
+                        try: w.configure(bg=bg, fg=fg)
+                        except Exception: pass
+
+        def _on_press(self, ri, ci, event):
+            self._drag_moved = False
+            if event.state & 0x0004:
+                if (ri, ci) in self.sel_cells:
+                    self.sel_cells.discard((ri, ci))
+                else:
+                    self.sel_cells.add((ri, ci))
+            elif event.state & 0x20000 and self.anchor:
+                ar, ac = self.anchor
+                lo_r, hi_r = min(ar, ri), max(ar, ri)
+                lo_c, hi_c = min(ac, ci), max(ac, ci)
+                self.sel_cells.clear()
+                for r in range(lo_r, hi_r + 1):
+                    for c in range(lo_c, hi_c + 1):
+                        self.sel_cells.add((r, c))
+            else:
+                self.sel_cells.clear()
+                self.sel_cells.add((ri, ci))
+            self.anchor = (ri, ci)
+            self._apply_selection()
+
+        def _on_move(self, ri, ci):
+            if self.anchor and (ri, ci) != self.anchor:
+                self._drag_moved = True
+                ar, ac = self.anchor
+                lo_r, hi_r = min(ar, ri), max(ar, ri)
+                lo_c, hi_c = min(ac, ci), max(ac, ci)
+                self.sel_cells.clear()
+                for r in range(lo_r, hi_r + 1):
+                    for c in range(lo_c, hi_c + 1):
+                        self.sel_cells.add((r, c))
+                self._apply_selection()
+
+        def _on_tab(self, ri, ci):
+            nc = ci + 1; nr = ri
+            if nc >= self.ncols: nc = 0; nr = ri + 1
+            if nr >= self.nrows: nr = 0
+            self.sel_cells.clear(); self.sel_cells.add((nr, nc))
+            self.anchor = (nr, nc); self._apply_selection()
+            for w in self.frame.grid_slaves(row=nr + 1, column=nc):
+                w.focus_set(); return "break"
+            return "break"
+
+        def _on_shift_tab(self, ri, ci):
+            nc = ci - 1; nr = ri
+            if nc < 0: nc = self.ncols - 1; nr = ri - 1
+            if nr < 0: nr = self.nrows - 1
+            self.sel_cells.clear(); self.sel_cells.add((nr, nc))
+            self.anchor = (nr, nc); self._apply_selection()
+            for w in self.frame.grid_slaves(row=nr + 1, column=nc):
+                w.focus_set(); return "break"
+            return "break"
+
+        def _on_right_click(self, ri, ci, event):
+            if (ri, ci) not in self.sel_cells:
+                self.sel_cells.clear(); self.sel_cells.add((ri, ci))
+                self.anchor = (ri, ci); self._apply_selection()
+            menu = tk.Menu(self.frame, tearoff=0)
+            count = len(self.sel_cells)
+            label = f"（{count}格）" if count > 1 else ""
+            fmt_menu = tk.Menu(menu, tearoff=0)
+            def _bg():
+                from tkinter import colorchooser
+                c = colorchooser.askcolor(title=f"选择{count}个格子的背景色")
+                if c and c[1]:
+                    for (r, c2) in list(self.sel_cells):
+                        if (r, c2) not in self.cell_styles: self.cell_styles[(r, c2)] = {}
+                        self.cell_styles[(r, c2)]["bg"] = c[1]
+                    self._apply_selection()
+            fmt_menu.add_command(label=f"填充背景色...{label}", command=_bg)
+            def _fg():
+                from tkinter import colorchooser
+                c = colorchooser.askcolor(title=f"选择{count}个格子的文字色")
+                if c and c[1]:
+                    for (r, c2) in list(self.sel_cells):
+                        if (r, c2) not in self.cell_styles: self.cell_styles[(r, c2)] = {}
+                        self.cell_styles[(r, c2)]["fg"] = c[1]
+                    self._apply_selection()
+            fmt_menu.add_command(label=f"文字颜色...{label}", command=_fg)
+            fmt_menu.add_separator()
+            if len(self.sel_cells) >= 2:
+                fmt_menu.add_command(label="🔗 合并选中格子", command=self._merge_cells)
+            menu.add_cascade(label="单元格格式", menu=fmt_menu)
+            menu.post(event.x_root, event.y_root)
+
+        def _merge_cells(self):
+            if len(self.sel_cells) < 2: return
+            sc = sorted(self.sel_cells)
+            fr, fc = sc[0]
+            combined = self.rows[fr][fc] if fc < len(self.rows[fr]) else ""
+            for r, c in sc[1:]:
+                if c < len(self.rows[r]) and self.rows[r][c].strip():
+                    combined += str(self.rows[r][c])
+                while len(self.rows[r]) <= c: self.rows[r].append("")
+                self.rows[r][c] = ""
+            while len(self.rows[fr]) <= fc: self.rows[fr].append("")
+            self.rows[fr][fc] = combined
+            self._rebuild()
+
+        def get_data(self):
+            hdrs = []
+            for ci in range(self.ncols):
+                txt = self.headers[ci] if ci < len(self.headers) else f"列{ci + 1}"
+                if self.edit_mode:
+                    for w in self.frame.grid_slaves(row=0, column=ci):
+                        if isinstance(w, tk.Entry): txt = w.get().strip() or txt
+                hdrs.append(txt)
+            data_rows = []
+            for ri in range(self.nrows):
+                row_vals = list(self.rows[ri])
+                while len(row_vals) < self.ncols: row_vals.append("")
+                data_rows.append(row_vals[:self.ncols])
+            styles_export = {}
+            for (r, c), s in self.cell_styles.items():
+                styles_export[f"{r},{c}"] = s
+            return hdrs, data_rows, styles_export
+
+        def _rebuild(self):
+            self.ncols = len(self.headers)
+            self.nrows = len(self.rows)
+            for w in self.frame.winfo_children(): w.destroy()
+            self._build()
+            self._apply_selection()
+
+        def add_row_at_end(self):
+            self.rows.append([""] * self.ncols); self._rebuild()
+
+        def insert_row_above(self):
+            if self.sel_cells:
+                r = min(rc[0] for rc in self.sel_cells)
+                self.rows.insert(r, [""] * self.ncols)
+            else:
+                self.rows.append([""] * self.ncols)
+            self._rebuild()
+
+        def delete_selected_rows(self):
+            rows_to_del = set(r for (r, c) in self.sel_cells)
+            if not rows_to_del: return
+            for r in sorted(rows_to_del, reverse=True):
+                if 0 <= r < len(self.rows): self.rows.pop(r)
+            self.sel_cells.clear(); self._rebuild()
+
+        def add_column_at_end(self):
+            self.headers.append(f"列{self.ncols + 1}")
+            for row in self.rows:
+                while len(row) < len(self.headers): row.append("")
+            self._rebuild()
+
+        def delete_last_column(self):
+            if self.ncols <= 1: return
+            self.headers.pop()
+            for row in self.rows:
+                if len(row) > len(self.headers): row.pop()
+            self._rebuild()
+
+    # ---- _homepage_render_table_block（重写为网格表格） ----
     def _homepage_render_table_block(self, bi, block, edit_mode=False):
         frm = ttk.LabelFrame(self.home_inner, padding=8)
         frm.pack(fill="x", padx=15, pady=(8, 4))
 
         headers = list(block.get("headers", ["列1", "列2", "列3"]))
         rows = block.get("rows", [["", "", ""]])
-        merges = block.get("merges", [])  # [[row, col, col_span], ...]
-
-        # 确保 rows 中每行长度匹配 headers
         for r in rows:
             while len(r) < len(headers):
                 r.append("")
+        saved_styles = block.get("cell_styles", {})
+        cell_styles = {}
+        for key, style in saved_styles.items():
+            parts = key.split(",")
+            if len(parts) == 2:
+                try: cell_styles[(int(parts[0]), int(parts[1]))] = style
+                except Exception: pass
 
-        col_ids = [f"col{i}" for i in range(len(headers))]
-        # 查看模式显示所有行，编辑模式限制高度便于操作
-        nrows = len(rows) + (1 if edit_mode else 0) if not edit_mode else min(len(rows) + 5, 20)
-
-        tree = ttk.Treeview(frm, columns=col_ids, show="headings",
-                            selectmode="extended" if edit_mode else "browse", height=nrows)
-        for ci, h in enumerate(headers):
-            tree.heading(col_ids[ci], text=h)
-            tree.column(col_ids[ci], width=130, anchor="center", minwidth=60)
-
-        # 渲染行（处理合并：合并单元格内容放入第一个，其余留空）
-        for ri, row in enumerate(rows):
-            display_vals = list(row)
-            for mg in merges:
-                if mg[0] == ri:
-                    mcol, mspan = mg[1], mg[2]
-                    # 合并内容：从 mcol 开始，mspan 列的内容拼接
-                    merged_text = "".join(str(row[mcol + i]) for i in range(mspan) if mcol + i < len(row))
-                    display_vals[mcol] = merged_text
-                    for i in range(1, mspan):
-                        if mcol + i < len(display_vals):
-                            display_vals[mcol + i] = ""
-            tree.insert("", tk.END, values=display_vals)
-
-        tree.pack(fill="both", expand=True)
-
-        # 当前选中的单元格（用于合并）
-        selected_cells = []
+        gt = self._GridTable(frm, headers, rows, cell_styles, edit_mode)
+        gt.frame.pack(fill="both", expand=True)
 
         if edit_mode:
-            # ---- 双击编辑单元格（含表头） ----
-            def _edit_cell(event):
-                region = tree.identify_region(event.x, event.y)
-                col_id = tree.identify_column(event.x)
-                item_id = tree.identify_row(event.y)
-                ci = int(col_id.replace("#", "")) - 1
-
-                if region == "heading":
-                    # 编辑列标题
-                    x, y, w, h = tree.bbox("", column=f"#{ci + 1}")
-                    if not (x and y and w and h):
-                        # bbox 对 heading 可能不灵，用固定位置
-                        x = sum(tree.column(c, "width") for c in col_ids[:ci])
-                        y, w, h = 0, tree.column(col_ids[ci], "width"), 25
-                    e = ttk.Entry(frm, width=max(w // 10, 8))
-                    e.place(x=x + 2, y=y + 2, width=w - 4, height=h)
-                    e.insert(0, headers[ci])
-                    e.lift()
-                    e.focus_set()
-                    def _svh():
-                        headers[ci] = e.get().strip() or headers[ci]
-                        tree.heading(col_ids[ci], text=headers[ci])
-                        e.destroy()
-                    e.bind("<Return>", lambda ev: _svh())
-                    e.bind("<FocusOut>", lambda ev: frm.after(100, _svh))
-                    return
-
-                if region != "cell" or not item_id:
-                    return
-                cur = list(tree.item(item_id, "values"))
-                txt = cur[ci] if ci < len(cur) else ""
-                x, y, w, h = tree.bbox(item_id, column=f"#{ci + 1}")
-                if not h:
-                    return
-                e = ttk.Entry(tree, width=max(w // 10, 8))
-                e.place(x=x, y=y, width=w, height=h)
-                e.insert(0, txt)
-                e.lift()
-                e.focus_set()
-                def _sv():
-                    nv = e.get().strip()
-                    vs = list(tree.item(item_id, "values"))
-                    while len(vs) <= ci:
-                        vs.append("")
-                    vs[ci] = nv
-                    tree.item(item_id, values=vs)
-                    e.destroy()
-                e.bind("<Return>", lambda ev: _sv())
-                e.bind("<FocusOut>", lambda ev: tree.after(100, _sv))
-            tree.bind("<Double-1>", _edit_cell)
-
-            # ---- 鼠标拖动多选 ----
-            _drag_data = {"start": None, "dragging": False}
-            def _on_drag_start(event):
-                item_id = tree.identify_row(event.y)
-                if item_id:
-                    _drag_data["start"] = item_id
-                    _drag_data["dragging"] = True
-                    if not (event.state & 0x0004):  # 没按 Ctrl
-                        tree.selection_set(item_id)
-            def _on_drag_move(event):
-                if not _drag_data.get("dragging"):
-                    return
-                item_id = tree.identify_row(event.y)
-                if item_id and item_id != _drag_data.get("start"):
-                    sel = set(tree.selection())
-                    sel.add(item_id)
-                    all_items = tree.get_children()
-                    try:
-                        start_idx = all_items.index(_drag_data["start"])
-                        cur_idx = all_items.index(item_id)
-                    except ValueError:
-                        return
-                    lo, hi = min(start_idx, cur_idx), max(start_idx, cur_idx)
-                    for i in range(lo, hi + 1):
-                        sel.add(all_items[i])
-                    tree.selection_set(list(sel))
-                    _drag_data["start"] = item_id
-            def _on_drag_stop(event):
-                _drag_data["dragging"] = False
-                _drag_data["start"] = None
-            tree.bind("<ButtonPress-1>", _on_drag_start, add="+")
-            tree.bind("<B1-Motion>", _on_drag_move, add="+")
-            tree.bind("<ButtonRelease-1>", _on_drag_stop, add="+")
-
-            # ---- 记录选中的单元格 ----
-            def _on_select(event):
-                nonlocal selected_cells
-                selected_cells = []
-                for sel in tree.selection():
-                    item_idx = tree.index(sel)
-                    # 简单记录行索引
-                    selected_cells.append(item_idx)
-            tree.bind("<<TreeviewSelect>>", _on_select)
-
-            # ---- 右键菜单 ----
-            def _right_click(event):
-                row_iid = tree.identify_row(event.y)
-                col_id = tree.identify_column(event.x)
-                ci = int(col_id.replace("#", "")) - 1 if col_id else -1
-                sel = tree.selection()
-                menu = tk.Menu(self.root, tearoff=0)
-
-                if row_iid and ci >= 0:
-                    item_idx = tree.index(row_iid)
-                    # 单元格格式化菜单
-                    fmt_menu = tk.Menu(menu, tearoff=0)
-                    fmt_menu.add_command(label="填充背景色...",
-                        command=lambda t=tree, r=row_iid, c=ci: self._homepage_cell_bgcolor(t, r, c))
-                    fmt_menu.add_command(label="文字颜色...",
-                        command=lambda t=tree, r=row_iid, c=ci: self._homepage_cell_fgcolor(t, r, c))
-                    fmt_menu.add_command(label="加粗",
-                        command=lambda t=tree, r=row_iid, c=ci: self._homepage_cell_bold(t, r, c))
-                    fmt_menu.add_command(label="字体大小+",
-                        command=lambda t=tree, r=row_iid: self._homepage_cell_font_bigger(t, r))
-                    fmt_menu.add_command(label="字体大小-",
-                        command=lambda t=tree, r=row_iid: self._homepage_cell_font_smaller(t, r))
-                    fmt_menu.add_separator()
-                    fmt_menu.add_command(label="向右合并",
-                        command=lambda t=tree, r=item_idx, c=ci: self._homepage_merge_right(t, r, c))
-                    fmt_menu.add_command(label="拆分行",
-                        command=lambda t=tree, r=row_iid: self._homepage_split_row(t, r))
-                    menu.add_cascade(label="单元格格式", menu=fmt_menu)
-                    menu.add_separator()
-
-                if len(sel) >= 2:
-                    menu.add_command(label="合并选中行（上下合并）",
-                                     command=lambda: self._homepage_merge_rows(tree, sel))
-                menu.post(event.x_root, event.y_root)
-            tree.bind("<Button-3>", _right_click)
-
-            # ---- 操作按钮行1：行列管理 ----
             op_row = ttk.Frame(frm)
             op_row.pack(fill="x", pady=(5, 0))
-            ttk.Button(op_row, text="➕ 行",
-                       command=lambda t=tree, h=headers: t.insert("", tk.END, values=[""] * len(h))).pack(side="left", padx=2)
-            ttk.Button(op_row, text="🗑 行",
-                       command=lambda t=tree: [t.delete(s) for s in t.selection()] if t.selection() else None).pack(side="left", padx=2)
+            ttk.Label(op_row, text="行：", font=("微软雅黑", 10)).pack(side="left", padx=(0, 2))
+            ttk.Button(op_row, text="➕ 末尾", command=gt.add_row_at_end).pack(side="left", padx=1)
+            ttk.Button(op_row, text="📌 插入", command=gt.insert_row_above).pack(side="left", padx=1)
+            ttk.Button(op_row, text="🗑 删除", command=gt.delete_selected_rows).pack(side="left", padx=1)
             ttk.Separator(op_row, orient="vertical").pack(side="left", fill="y", padx=5, pady=2)
-            ttk.Button(op_row, text="➕ 列",
-                       command=lambda t=tree, h=headers: self._homepage_add_column(t, h)).pack(side="left", padx=2)
-            ttk.Button(op_row, text="🗑 列",
-                       command=lambda t=tree, h=headers: self._homepage_del_column(t, h)).pack(side="left", padx=2)
+            ttk.Label(op_row, text="列：", font=("微软雅黑", 10)).pack(side="left", padx=(0, 2))
+            ttk.Button(op_row, text="➕ 末尾", command=gt.add_column_at_end).pack(side="left", padx=1)
+            ttk.Button(op_row, text="🗑 末尾", command=gt.delete_last_column).pack(side="left", padx=1)
 
-            # 确认 / 取消
             btn_row = ttk.Frame(frm)
             btn_row.pack(side="bottom", anchor="e", pady=(5, 0))
-            ttk.Button(btn_row, text="✅ 确认",
-                       command=lambda t=tree, b=bi: self._homepage_table_confirm(t, b)).pack(side="right", padx=5)
+            def _confirm():
+                hdrs, data_rows, styles = gt.get_data()
+                block["headers"] = hdrs
+                block["rows"] = data_rows
+                block["cell_styles"] = styles
+                self._homepage_save()
+                self._homepage_render_all()
+            ttk.Button(btn_row, text="✅ 确认", command=_confirm).pack(side="right", padx=5)
             ttk.Button(btn_row, text="❌ 取消",
                        command=lambda: self._homepage_render_all()).pack(side="right", padx=5)
         else:
-            # 编辑 / 删除按钮
             btn_row = ttk.Frame(frm)
-            btn_row.pack(side="bottom", anchor="e", pady=(5, 0))
-            ttk.Button(btn_row, text="✏️ 编辑",
-                       command=lambda b=bi: self._homepage_edit_block(b)).pack(side="right", padx=5)
-            ttk.Button(btn_row, text="🗑 删除",
-                       command=lambda b=bi: self._homepage_delete_block(b)).pack(side="right", padx=5)
+            btn_row.pack(fill="x", pady=(5, 0))
+            ttk.Button(btn_row, text="✏️ 编辑此表格",
+                       command=lambda b=bi: self._homepage_edit_block(b)).pack(side="left", padx=2)
+            ttk.Button(btn_row, text="🗑 删除此表格",
+                       command=lambda b=bi: self._homepage_delete_block(b)).pack(side="right", padx=2)
 
-    # ==================== 表格辅助操作 ====================
-    def _homepage_add_column(self, tree, headers):
-        """添加新列"""
-        new_ci = len(headers)
-        col_id = f"col{new_ci}"
-        headers.append(f"列{new_ci + 1}")
-        tree["columns"] = [f"col{i}" for i in range(len(headers))]
-        tree.heading(col_id, text=headers[-1])
-        tree.column(col_id, width=130, anchor="center", minwidth=60)
-        # 为所有现有行添加空值
-        for iid in tree.get_children():
-            vals = list(tree.item(iid, "values"))
-            vals.append("")
-            tree.item(iid, values=vals)
-
-    def _homepage_del_column(self, tree, headers):
-        """删除最后一列"""
-        if len(headers) <= 1:
-            messagebox.showwarning("提示", "至少保留一列")
-            return
-        headers.pop()
-        tree["columns"] = [f"col{i}" for i in range(len(headers))]
-        for ci in range(len(headers)):
-            tree.heading(f"col{ci}", text=headers[ci])
-        # 为所有行删除最后一个值
-        for iid in tree.get_children():
-            vals = list(tree.item(iid, "values"))
-            if len(vals) > len(headers):
-                vals = vals[:len(headers)]
-            tree.item(iid, values=vals)
-
-    def _homepage_merge_rows(self, tree, selection):
-        """垂直合并选中行：将下面行的内容追加到第一行，删除其余行"""
-        if len(selection) < 2:
-            return
-        first_iid = selection[0]
-        first_vals = list(tree.item(first_iid, "values"))
-        for iid in selection[1:]:
-            vals = list(tree.item(iid, "values"))
-            for ci in range(min(len(first_vals), len(vals))):
-                if vals[ci].strip():
-                    first_vals[ci] = first_vals[ci] + ("\n" if first_vals[ci].strip() else "") + vals[ci]
-            tree.delete(iid)
-        tree.item(first_iid, values=first_vals)
-
-    def _homepage_merge_right(self, tree, row_idx, col_ci):
-        """向右合并单元格（当前格与右边格合并）"""
-        iids = tree.get_children()
-        if row_idx >= len(iids):
-            return
-        iid = iids[row_idx]
-        vals = list(tree.item(iid, "values"))
-        if col_ci + 1 >= len(vals):
-            return
-        combined = str(vals[col_ci]) + str(vals[col_ci + 1])
-        vals[col_ci] = combined
-        vals[col_ci + 1] = ""
-        tree.item(iid, values=vals)
-
-    def _homepage_cell_bgcolor(self, tree, iid, ci):
-        """设置单元格背景色"""
-        try:
-            from tkinter import colorchooser
-            c = colorchooser.askcolor(title="选择背景色")
-            if c and c[1]:
-                col_id = f"#{ci + 1}"
-                tag_name = f"bg_{c[1].replace('#', '')}_{iid}"
-                tree.tag_configure(tag_name, background=c[1])
-                tree.item(iid, tags=(tag_name,))
-        except Exception:
-            pass
-
-    def _homepage_cell_fgcolor(self, tree, iid, ci):
-        """设置单元格文字颜色"""
-        try:
-            from tkinter import colorchooser
-            c = colorchooser.askcolor(title="选择文字颜色")
-            if c and c[1]:
-                col_id = f"#{ci + 1}"
-                tag_name = f"fg_{c[1].replace('#', '')}_{iid}"
-                tree.tag_configure(tag_name, foreground=c[1])
-                tree.item(iid, tags=(tag_name,))
-        except Exception:
-            pass
-
-    def _homepage_cell_bold(self, tree, iid, ci):
-        """切换单元格加粗"""
-        try:
-            cur_tags = list(tree.item(iid, "tags"))
-            if "bold_cell" in cur_tags:
-                cur_tags.remove("bold_cell")
-                tree.item(iid, tags=tuple(cur_tags))
-            else:
-                tree.tag_configure("bold_cell", font=("微软雅黑", 11, "bold"))
-                cur_tags.append("bold_cell")
-                tree.item(iid, tags=tuple(cur_tags))
-        except Exception:
-            pass
-
-    def _homepage_cell_font_bigger(self, tree, iid):
-        """增大该行字体"""
-        try:
-            cur_tags = list(tree.item(iid, "tags"))
-            # 查找当前最大的字体 tag
-            max_size = 11
-            for t in cur_tags:
-                if t.startswith("fontsize_"):
-                    try:
-                        max_size = max(max_size, int(t.split("_")[1]))
-                    except Exception:
-                        pass
-            new_size = min(max_size + 2, 24)
-            new_tag = f"fontsize_{new_size}"
-            # 移除旧字体 tag
-            cur_tags = [t for t in cur_tags if not t.startswith("fontsize_")]
-            tree.tag_configure(new_tag, font=("微软雅黑", new_size))
-            cur_tags.append(new_tag)
-            tree.item(iid, tags=tuple(cur_tags))
-        except Exception:
-            pass
-
-    def _homepage_cell_font_smaller(self, tree, iid):
-        """减小该行字体"""
-        try:
-            cur_tags = list(tree.item(iid, "tags"))
-            min_size = 11
-            for t in cur_tags:
-                if t.startswith("fontsize_"):
-                    try:
-                        min_size = min(min_size, int(t.split("_")[1]))
-                    except Exception:
-                        pass
-            new_size = max(min_size - 2, 8)
-            new_tag = f"fontsize_{new_size}"
-            cur_tags = [t for t in cur_tags if not t.startswith("fontsize_")]
-            tree.tag_configure(new_tag, font=("微软雅黑", new_size))
-            cur_tags.append(new_tag)
-            tree.item(iid, tags=tuple(cur_tags))
-        except Exception:
-            pass
-
-    def _homepage_split_row(self, tree, iid):
-        """拆分合并行：在当前行下方插入一行"""
-        try:
-            vals = list(tree.item(iid, "values"))
-            iid_idx = tree.index(iid)
-            # 下方插入空行
-            new_iid = tree.insert("", iid_idx + 1, values=[""] * len(vals))
-            tree.selection_set(new_iid)
-        except Exception:
-            pass
-
-    def _homepage_table_confirm(self, tree, bi):
-        """确认表格编辑"""
-        col_ids = list(tree["columns"])
-        headers = []
-        for ci in range(len(col_ids)):
-            # 从 heading 读取当前列标题
-            h_text = tree.heading(col_ids[ci], "text")
-            headers.append(h_text)
-        rows = []
-        for iid in tree.get_children():
-            vals = list(tree.item(iid, "values"))
-            while len(vals) < len(headers):
-                vals.append("")
-            rows.append(vals[:len(headers)])
-        if not rows:
-            del self.homepage_blocks[bi]
-        else:
-            self.homepage_blocks[bi]["headers"] = headers
-            self.homepage_blocks[bi]["rows"] = rows
-        self._homepage_save()
-        self._homepage_render_all()
-
-    # ==================== 编辑 / 删除 / 添加 ====================
     def _homepage_edit_block(self, bi):
         """进入编辑模式：只渲染该 block 为编辑态"""
         # 清除容器
@@ -2039,6 +1980,18 @@ class ReportApp:
         # 刷新表格
         self._lzy_refresh_tree()
 
+        # ---- 保存栏（嵌入标签页底部） ----
+        sep = ttk.Separator(inner, orient="horizontal")
+        sep.pack(fill="x", pady=(15, 5))
+        bar = ttk.Frame(inner, padding=5)
+        bar.pack(fill="x")
+        ttk.Label(bar, text="保存目录：").pack(side="left")
+        self.entry_save_lzy2 = ttk.Entry(bar, textvariable=self.lzy_save_dir, width=32)
+        self.entry_save_lzy2.pack(side="left", padx=5)
+        ttk.Button(bar, text="浏览...", command=self._browse_lzy_dir).pack(side="left", padx=3)
+        ttk.Button(bar, text="📊 写入 Excel", command=self._lzy_write_excel,
+                   style="Accent.TButton").pack(side="right", padx=5)
+
     # ==================== 两直一白 辅助方法 ====================
     def _lzy_load_data(self):
         """加载持久化数据"""
@@ -2060,7 +2013,7 @@ class ReportApp:
             pass
 
     def _lzy_add_row(self):
-        """从表单收集数据，添加到表格"""
+        """从表单收集数据，添加到表格（或更新正在编辑的行）"""
         month = self.lzy_month.get().strip()
         day = self.lzy_day.get().strip()
         if not month or not day:
@@ -2087,16 +2040,25 @@ class ReportApp:
                 entry = self.lzy_entries.get(field)
                 row_data[field] = entry.get().strip() if entry else ""
 
-        # 序号自增
-        max_seq = 0
-        for r in self.lzy_rows:
-            try:
-                max_seq = max(max_seq, int(r.get("序号", 0)))
-            except Exception:
-                pass
-        row_data["序号"] = str(max_seq + 1)
+        edit_idx = getattr(self, '_lzy_edit_idx', None)
+        if edit_idx is not None and 0 <= edit_idx < len(self.lzy_rows):
+            # 更新正在编辑的行（保留原序号）
+            old_seq = self.lzy_rows[edit_idx].get("序号", "")
+            row_data["序号"] = old_seq
+            self.lzy_rows[edit_idx] = row_data
+            self._lzy_edit_idx = None
+            self._lzy_edit_btn.config(text="✏️ 编辑选中行（回填表单）")
+        else:
+            # 新增行：序号自增
+            max_seq = 0
+            for r in self.lzy_rows:
+                try:
+                    max_seq = max(max_seq, int(r.get("序号", 0)))
+                except Exception:
+                    pass
+            row_data["序号"] = str(max_seq + 1)
+            self.lzy_rows.append(row_data)
 
-        self.lzy_rows.append(row_data)
         self._lzy_save_data()
         self._lzy_refresh_tree()
         self._lzy_clear_form()
@@ -2111,6 +2073,10 @@ class ReportApp:
         today = date.today()
         self.lzy_month.set(f"{today.month}月")
         self.lzy_day.set(f"{today.day}日")
+        # 退出编辑模式
+        self._lzy_edit_idx = None
+        if hasattr(self, '_lzy_edit_btn'):
+            self._lzy_edit_btn.config(text="✏️ 编辑选中行（回填表单）")
 
     def _lzy_refresh_tree(self):
         """刷新 Treeview"""
@@ -2135,7 +2101,7 @@ class ReportApp:
         self._lzy_refresh_tree()
 
     def _lzy_edit_selected(self):
-        """将选中行数据回填到表单"""
+        """将选中行数据回填到表单（编辑模式）"""
         sel = self.lzy_tree.selection()
         if not sel:
             return
@@ -2143,6 +2109,10 @@ class ReportApp:
         if idx >= len(self.lzy_rows):
             return
         row = self.lzy_rows[idx]
+
+        # 记录正在编辑的行
+        self._lzy_edit_idx = idx
+        self._lzy_edit_btn.config(text="✅ 确认修改（当前编辑第{}行）".format(idx + 1))
         # 解析时间
         time_str = row.get("时间", "")
         m = re.match(r'(\d{1,2})月(\d{1,2})日', time_str)
@@ -2162,27 +2132,33 @@ class ReportApp:
         self.lzy_summary_text.insert("1.0", row.get("汇总", ""))
 
     def _browse_lzy_dir(self):
-        """浏览保存目录（或直接选择 Excel 文件）"""
-        folder = filedialog.askdirectory(title="选择保存目录")
-        if not folder:
-            # 尝试选择文件
-            file = filedialog.askopenfilename(
-                title="选择要写入的 Excel 文件",
-                filetypes=[("Excel 文件", "*.xlsx"), ("所有文件", "*.*")])
-            if file:
-                folder = os.path.dirname(file)
-                self.lzy_save_dir.set(folder)
-                self._lzy_target_file = file
-                self.save_config()
-                return
-            else:
-                return
-        self.lzy_save_dir.set(folder)
-        self._lzy_target_file = None
-        self.save_config()
+        """浏览：优先选择已存在的 Excel 文件，也可选目录"""
+        # 先尝试选择文件
+        file = filedialog.askopenfilename(
+            title="选择要写入的 Excel 文件（或取消后选目录）",
+            filetypes=[("Excel 文件", "*.xlsx"), ("所有文件", "*.*")])
+        if file:
+            self.lzy_save_dir.set(os.path.dirname(file))
+            self._lzy_target_file = file
+            self.save_config()
+            return
+        # 取消选文件 → 选目录
+        folder = filedialog.askdirectory(title="选择保存目录（将在该目录创建两直一白.xlsx）")
+        if folder:
+            self.lzy_save_dir.set(folder)
+            self._lzy_target_file = None
+            self.save_config()
 
     def _lzy_write_excel(self):
         """写入 Excel：首次创建带表头，后续追加行"""
+        try:
+            self._lzy_write_excel_impl()
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            messagebox.showerror("写入 Excel 失败", str(e))
+
+    def _lzy_write_excel_impl(self):
         if not self.lzy_rows:
             messagebox.showwarning("提示", "没有数据可写入")
             return
@@ -2194,14 +2170,13 @@ class ReportApp:
 
         # 确定目标文件
         target = getattr(self, '_lzy_target_file', None)
-        if not target:
+        if not target or not os.path.exists(os.path.dirname(target)):
             target = os.path.join(save_dir, "两直一白.xlsx")
         self._lzy_target_file = target
 
         import shutil
 
         NS = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'
-        NS_R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
 
         template = os.path.join(self.app_dir, "两直一白.xlsx")
 
@@ -2213,12 +2188,11 @@ class ReportApp:
                 messagebox.showerror("错误", f"模板文件不存在：\n{template}")
                 return
 
-        # 读取现有 Excel，找到最后一行
+        # 读取现有 Excel
         with zipfile.ZipFile(target, 'r') as z:
             sst_xml = z.read('xl/sharedStrings.xml')
             sheet_xml = z.read('xl/worksheets/sheet1.xml')
             styles_xml = z.read('xl/styles.xml')
-            # 读取其他文件
             other_files = {}
             for name in z.namelist():
                 if name not in ('xl/sharedStrings.xml', 'xl/worksheets/sheet1.xml',
@@ -2229,7 +2203,64 @@ class ReportApp:
         sheet_root = ET.fromstring(sheet_xml)
         styles_root = ET.fromstring(styles_xml)
 
-        # --- Shared Strings ---
+        # --- 查找或创建数据单元格样式（微软雅黑 Light, 14pt, 居中, 细边框） ---
+        fonts_elem = styles_root.find(f'{{{NS}}}fonts')
+        if fonts_elem is None:
+            fonts_elem = ET.SubElement(styles_root, f'{{{NS}}}fonts')
+
+        # 查找已有匹配字体（精确匹配 微软雅黑 Light 14pt）
+        data_font_id = None
+        for fi, f in enumerate(fonts_elem.findall(f'{{{NS}}}font')):
+            sz = f.find(f'{{{NS}}}sz')
+            name = f.find(f'{{{NS}}}name')
+            if (sz is not None and sz.get('val') == '14' and
+                name is not None and name.get('val') == '微软雅黑 Light'):
+                data_font_id = fi
+                break
+
+        # 没找到则创建
+        if data_font_id is None:
+            font_count = len(fonts_elem.findall(f'{{{NS}}}font'))
+            data_font = ET.SubElement(fonts_elem, f'{{{NS}}}font')
+            ET.SubElement(data_font, f'{{{NS}}}sz').set('val', '14')
+            ET.SubElement(data_font, f'{{{NS}}}name').set('val', '微软雅黑 Light')
+            data_font_id = font_count
+            fonts_elem.set('count', str(font_count + 1))
+
+        # 查找已有匹配 xf
+        cell_xfs_elem = styles_root.find(f'{{{NS}}}cellXfs')
+        if cell_xfs_elem is None:
+            cell_xfs_elem = ET.SubElement(styles_root, f'{{{NS}}}cellXfs')
+        data_xf_id = None
+        for xi, xf in enumerate(cell_xfs_elem.findall(f'{{{NS}}}xf')):
+            al = xf.find(f'{{{NS}}}alignment')
+            if (xf.get('fontId') == str(data_font_id) and
+                xf.get('borderId') == '1' and
+                al is not None and
+                al.get('horizontal') == 'center' and
+                al.get('vertical') == 'center'):
+                data_xf_id = xi
+                break
+
+        # 没找到则创建
+        if data_xf_id is None:
+            xf_count = len(cell_xfs_elem.findall(f'{{{NS}}}xf'))
+            data_xf = ET.SubElement(cell_xfs_elem, f'{{{NS}}}xf', {
+                'fontId': str(data_font_id),
+                'fillId': '0',
+                'borderId': '1',
+                'applyFont': '1',
+                'applyAlignment': '1',
+                'applyBorder': '1',
+            })
+            ET.SubElement(data_xf, f'{{{NS}}}alignment', {
+                'horizontal': 'center',
+                'vertical': 'center',
+            })
+            data_xf_id = xf_count
+            cell_xfs_elem.set('count', str(xf_count + 1))
+
+        # --- 现有的 shared strings ---
         strings = []
         for si in sst_root:
             t = si.find(f'{{{NS}}}t')
@@ -2246,15 +2277,18 @@ class ReportApp:
                 strings.append(s)
             return str_index[s]
 
-        # --- 找到最后一个数据行号及最后序号 ---
+        # --- 找到最后一行的序号 ---
         sheet_data_elem = sheet_root.find(f'{{{NS}}}sheetData')
+        if sheet_data_elem is None:
+            messagebox.showerror("错误", "Excel 文件中未找到 sheetData")
+            return
+
         max_row = 0
         last_seq = 0
         for row_elem in sheet_data_elem.findall(f'{{{NS}}}row'):
             r = int(row_elem.get('r', 0))
             max_row = max(max_row, r)
             if r == max_row:
-                # 尝试读取 A 列（序号）
                 for c in row_elem.findall(f'{{{NS}}}c'):
                     if c.get('r', '').startswith('A'):
                         v = c.find(f'{{{NS}}}v')
@@ -2266,59 +2300,63 @@ class ReportApp:
                                         last_seq = int(strings[si])
                                 except (ValueError, IndexError):
                                     pass
-                            else:
+                            elif c.get('t') is None or c.get('t') == 'n':
                                 try:
                                     last_seq = int(v.text)
                                 except ValueError:
                                     pass
                         break
 
-        # --- 调整序号（从现有 Excel 最后序号 +1 开始） ---
+        # 序号的起始值至少从表格现有行数+1开始（表头占第1行）
+        next_seq = max(last_seq + 1, max_row) if max_row > 1 else last_seq + 1
         for ri, row_data in enumerate(self.lzy_rows):
-            row_data["序号"] = str(last_seq + 1 + ri)
+            row_data["序号"] = str(next_seq + ri)
 
         # --- 追加新行 ---
         for ri, row_data in enumerate(self.lzy_rows):
             row_num = max_row + 1 + ri
             row_elem = ET.SubElement(sheet_data_elem, f'{{{NS}}}row', {'r': str(row_num)})
             for ci, col_name in enumerate(self.lzy_columns):
-                col_letter = chr(ord('A') + ci) if ci < 26 else 'A' + chr(ord('A') + ci - 26)
+                col_letter = chr(ord('A') + ci) if ci < 26 else (
+                    'A' + chr(ord('A') + ci - 26))
                 cell_ref = f'{col_letter}{row_num}'
                 val = str(row_data.get(col_name, ''))
                 if val:
                     si = _add_str(val)
                     c = ET.SubElement(row_elem, f'{{{NS}}}c',
-                                      {'r': cell_ref, 't': 's'})
+                                      {'r': cell_ref, 't': 's',
+                                       's': str(data_xf_id)})
                     ET.SubElement(c, f'{{{NS}}}v').text = str(si)
                 else:
                     c = ET.SubElement(row_elem, f'{{{NS}}}c',
-                                      {'r': cell_ref})
+                                      {'r': cell_ref, 's': str(data_xf_id)})
                     ET.SubElement(c, f'{{{NS}}}v').text = ''
 
         # --- 重建 SST ---
-        new_sst = ET.Element(f'{{{NS}}}sst', {
+        sst_ns = f'{{{NS}}}'
+        new_sst = ET.Element(f'{sst_ns}sst', {
             'xmlns': NS,
             'count': str(len(strings)),
             'uniqueCount': str(len(strings)),
         })
         for s in strings:
-            si = ET.SubElement(new_sst, f'{{{NS}}}si')
-            t = ET.SubElement(si, f'{{{NS}}}t')
-            t.text = s
-        # 设置 xml:space="preserve" 用于空白字符
-        for si in new_sst:
-            t = si.find(f'{{{NS}}}t')
-            if t is not None and t.text and (' ' in t.text or '\n' in t.text):
+            si_elem = ET.SubElement(new_sst, f'{sst_ns}si')
+            t = ET.SubElement(si_elem, f'{sst_ns}t')
+            t.text = s if s else ''
+            if s and (' ' in s or '\n' in s):
                 t.set('{http://www.w3.org/XML/1998/namespace}space', 'preserve')
 
         # --- 写出新的 xlsx ---
         with zipfile.ZipFile(target, 'w', zipfile.ZIP_DEFLATED) as zout:
             zout.writestr('xl/sharedStrings.xml',
-                          ET.tostring(new_sst, encoding='unicode', xml_declaration=True))
+                          ET.tostring(new_sst, encoding='unicode',
+                                      xml_declaration=True))
             zout.writestr('xl/worksheets/sheet1.xml',
-                          ET.tostring(sheet_root, encoding='unicode', xml_declaration=True))
+                          ET.tostring(sheet_root, encoding='unicode',
+                                      xml_declaration=True))
             zout.writestr('xl/styles.xml',
-                          ET.tostring(styles_root, encoding='unicode', xml_declaration=True))
+                          ET.tostring(styles_root, encoding='unicode',
+                                      xml_declaration=True))
             for name, data in other_files.items():
                 zout.writestr(name, data)
 
@@ -2388,7 +2426,7 @@ class ReportApp:
         svc_style = ttk.Style()
         svc_style.configure("Svc.Treeview", font=("微软雅黑", 11), rowheight=36)
         self.svc_tree = ttk.Treeview(table_frame, columns=columns, show="headings",
-                                     selectmode="extended", height=18, style="Svc.Treeview")
+                                     selectmode="extended", height=12, style="Svc.Treeview")
         col_widths = [50, 120, 180, 300, 160, 120]
         for col, w in zip(columns, col_widths):
             self.svc_tree.heading(col, text=col)
@@ -2420,19 +2458,24 @@ class ReportApp:
         self.svc_tree.bind("<ButtonRelease-1>", self._on_svc_drag_stop, add="+")
 
         # ---- 底栏：保存目录 + 清空 + 生成 Excel ----
+        sep2 = ttk.Separator(parent, orient="horizontal")
+        sep2.pack(fill="x", pady=(0, 0))
         bottom_bar = ttk.Frame(parent, padding=5)
-        bottom_bar.pack(fill="x")
+        bottom_bar.pack(fill="x", pady=(0, 5))
 
-        ttk.Label(bottom_bar, text="保存目录：").pack(side="left")
+        ttk.Label(bottom_bar, text="保存目录：", font=("微软雅黑", 11)).pack(side="left")
         saved = self.load_config()
         svc_dir = saved.get("svc_save_dir", "")
         self.svc_save_dir = tk.StringVar(value=svc_dir if svc_dir and os.path.isdir(svc_dir) else os.getcwd())
         self.entry_svc_save = ttk.Entry(bottom_bar, textvariable=self.svc_save_dir, width=28)
         self.entry_svc_save.pack(side="left", padx=5)
         ttk.Button(bottom_bar, text="浏览...", command=self._browse_svc_dir).pack(side="left", padx=3)
-        ttk.Button(bottom_bar, text="➕ 添加行", command=self._add_empty_row).pack(side="left", padx=5)
-        ttk.Button(bottom_bar, text="🗑 删除选中行", command=self._delete_selected_row).pack(side="left", padx=5)
-        ttk.Button(bottom_bar, text="🔄 清空", command=self._clear_service_data).pack(side="left", padx=10)
+        ttk.Separator(bottom_bar, orient="vertical").pack(side="left", fill="y", padx=8, pady=2)
+        ttk.Button(bottom_bar, text="➕ 添加行", command=self._add_empty_row).pack(side="left", padx=2)
+        ttk.Button(bottom_bar, text="📌 插入行", command=self._insert_row_above).pack(side="left", padx=2)
+        ttk.Button(bottom_bar, text="🗑 删除选中行", command=self._delete_selected_row).pack(side="left", padx=2)
+        ttk.Button(bottom_bar, text="🔄 清空", command=self._clear_service_data).pack(side="left", padx=2)
+        ttk.Separator(bottom_bar, orient="vertical").pack(side="left", fill="y", padx=8, pady=2)
         ttk.Button(bottom_bar, text="📊 生成 Excel 文档", command=self._export_service_excel,
                    style="Accent.TButton").pack(side="right", padx=5)
 
@@ -2464,12 +2507,26 @@ class ReportApp:
             self.svc_tree.item(iid, values=vals)
 
     def _add_empty_row(self, save=True):
-        """添加一个空白行"""
+        """在末尾添加一个空白行"""
         items = self.svc_tree.get_children()
         next_num = len(items) + 1
         self.svc_tree.insert("", tk.END, values=(str(next_num), "", "", "", "", ""))
         if save:
             self._save_service_data()
+
+    def _insert_row_above(self):
+        """在选中行上方插入空白行"""
+        sel = self.svc_tree.selection()
+        if sel:
+            # 在选中行之前插入
+            before_iid = sel[0]
+            idx = self.svc_tree.index(before_iid)
+            self.svc_tree.insert("", idx, values=("", "", "", "", "", ""))
+        else:
+            # 没有选中行则添加到末尾
+            self.svc_tree.insert("", tk.END, values=("", "", "", "", "", ""))
+        self._renumber_rows()
+        self._save_service_data()
 
     def _delete_selected_row(self):
         """删除选中行"""
@@ -2477,13 +2534,26 @@ class ReportApp:
         if not sel:
             messagebox.showwarning("提示", "请先点击选中要删除的行")
             return
+        # 先关闭正在编辑的控件
+        self._svc_close_editor()
         for iid in sel:
             self.svc_tree.delete(iid)
         self._renumber_rows()
         self._save_service_data()
 
+    def _svc_close_editor(self):
+        """关闭当前活跃的编辑控件"""
+        w = getattr(self, '_svc_active_widget', None)
+        if w is not None and w.winfo_exists():
+            w.destroy()
+        self._svc_active_widget = None
+        self._svc_editing = False
+
     def _edit_service_cell(self, event):
         """单击单元格编辑"""
+        # 先关闭旧编辑器
+        self._svc_close_editor()
+
         region = self.svc_tree.identify_region(event.x, event.y)
         if region != "cell":
             return
@@ -2546,27 +2616,33 @@ class ReportApp:
             self._edit_service_cell(event)
 
     def _on_svc_right_click(self, event):
-        """右键菜单：单元格格式化"""
-        region = self.svc_tree.identify_region(event.x, event.y)
+        """右键菜单：单元格格式化 + 行操作"""
         item_id = self.svc_tree.identify_row(event.y)
         col_id = self.svc_tree.identify_column(event.x)
-        if not col_id or not item_id:
-            return
-        ci = int(col_id.replace("#", "")) - 1
-        if ci < 0:
-            return
 
         menu = tk.Menu(self.root, tearoff=0)
-        menu.add_command(label="🎨 填充背景色...",
-            command=lambda iid=item_id, c=ci: self._svc_cell_bgcolor(iid, c))
-        menu.add_command(label="✏️ 文字颜色...",
-            command=lambda iid=item_id, c=ci: self._svc_cell_fgcolor(iid, c))
-        menu.add_command(label="𝐁 加粗",
-            command=lambda iid=item_id: self._svc_cell_bold(iid))
-        menu.add_separator()
-        menu.add_command(label="📝 编辑单元格",
-            command=lambda: self._edit_service_cell(event))
-        # 如果选中多行，提供合并选项
+
+        # 单元格操作（仅当点击在有效单元格上时显示）
+        has_cell = False
+        if col_id and item_id:
+            ci = int(col_id.replace("#", "")) - 1
+            if ci >= 0:
+                has_cell = True
+                menu.add_command(label="🎨 填充背景色...",
+                    command=lambda iid=item_id, c=ci: self._svc_cell_bgcolor(iid, c))
+                menu.add_command(label="✏️ 文字颜色...",
+                    command=lambda iid=item_id, c=ci: self._svc_cell_fgcolor(iid, c))
+                menu.add_command(label="𝐁 加粗",
+                    command=lambda iid=item_id: self._svc_cell_bold(iid))
+                menu.add_separator()
+                menu.add_command(label="📝 编辑单元格",
+                    command=lambda: self._edit_service_cell(event))
+
+        # 行操作（始终可用）
+        if has_cell:
+            menu.add_separator()
+        menu.add_command(label="📌 在上方插入行",
+            command=self._insert_row_above)
         sel = self.svc_tree.selection()
         if len(sel) >= 2:
             menu.add_separator()
@@ -2695,6 +2771,7 @@ class ReportApp:
             text_w.lift()  # 确保在最上层
             text_w.focus_set()
             widget = text_w
+            self._svc_active_widget = widget
 
             def _get_val():
                 return text_w.get("1.0", "end-1c").strip()
@@ -2709,6 +2786,7 @@ class ReportApp:
             entry.lift()
             entry.focus_set()
             widget = entry
+            self._svc_active_widget = widget
 
             def _get_val():
                 return entry.get().strip()
@@ -2768,6 +2846,7 @@ class ReportApp:
         cb.set(cur_text)
         cb.lift()
         cb.focus_set()
+        self._svc_active_widget = cb
 
         destroyed = [False]
         popup = [None]
@@ -3100,8 +3179,8 @@ class ReportApp:
         """导出为 Excel (.xlsx) 文件"""
         try:
             title = self._get_svc_header_title()
-            now_str = datetime.now().strftime("%Y%m%d%H%M")
-            filename = f"{now_str}服务记录.xlsx"
+            # 文件名以表头文字命名：2026年06月22日强对流天气服务记录.xlsx
+            filename = f"{title}.xlsx"
             save_path = os.path.join(self.svc_save_dir.get(), filename)
 
             if os.path.exists(save_path):
@@ -3335,6 +3414,18 @@ class ReportApp:
         ff.pack(fill="x", pady=(0, 8))
         self._build_forecast(ff)
 
+        # ---- 保存栏（嵌入标签页底部） ----
+        sep = ttk.Separator(self.live_scroll_frame, orient="horizontal")
+        sep.pack(fill="x", pady=(15, 5))
+        bar = ttk.Frame(self.live_scroll_frame, padding=5)
+        bar.pack(fill="x")
+        ttk.Label(bar, text="保存目录：").pack(side="left")
+        self.entry_save_live2 = ttk.Entry(bar, textvariable=self.live_save_dir, width=32)
+        self.entry_save_live2.pack(side="left", padx=5)
+        ttk.Button(bar, text="浏览...", command=self.browse_folder_live).pack(side="left", padx=3)
+        ttk.Button(bar, text="✨ 生成 TXT 文件", command=self.generate_live_report,
+                   style="Accent.TButton").pack(side="right", padx=5)
+
     # ========== 预通报表单 ==========
     def build_pre_report_form(self):
         # --- 通报标题 ---
@@ -3428,6 +3519,18 @@ class ReportApp:
         self.setup_autocomplete(self.pre_wind, ["7-9级雷暴大风", "8-10级雷暴大风"])
         ttk.Label(r5, text="、冰雹等强对流天气，请各有关方面注意加强防范。").pack(side="left")
 
+        # ---- 保存栏（嵌入标签页底部） ----
+        sep = ttk.Separator(self.pre_scroll_frame, orient="horizontal")
+        sep.pack(fill="x", pady=(15, 5))
+        bar = ttk.Frame(self.pre_scroll_frame, padding=5)
+        bar.pack(fill="x")
+        ttk.Label(bar, text="保存目录：").pack(side="left")
+        self.entry_save_pre2 = ttk.Entry(bar, textvariable=self.pre_save_dir, width=32)
+        self.entry_save_pre2.pack(side="left", padx=5)
+        ttk.Button(bar, text="浏览...", command=self.browse_folder_pre).pack(side="left", padx=3)
+        ttk.Button(bar, text="✨ 生成 TXT 文件", command=self.generate_pre_report,
+                   style="Accent.TButton").pack(side="right", padx=5)
+
     # ========== 天气提醒表单 ==========
     def build_weather_alert_form(self):
         """构建天气提醒表单"""
@@ -3505,6 +3608,18 @@ class ReportApp:
         self.weather_focus.configure(yscrollcommand=focus_scroll.set)
         self.weather_focus.pack(side="left", fill="both", expand=True)
         focus_scroll.pack(side="right", fill="y")
+
+        # ---- 保存栏（嵌入标签页底部） ----
+        sep = ttk.Separator(self.weather_scroll_frame, orient="horizontal")
+        sep.pack(fill="x", pady=(15, 5))
+        bar = ttk.Frame(self.weather_scroll_frame, padding=5)
+        bar.pack(fill="x")
+        ttk.Label(bar, text="保存目录：").pack(side="left")
+        self.entry_save_weather2 = ttk.Entry(bar, textvariable=self.weather_save_dir, width=32)
+        self.entry_save_weather2.pack(side="left", padx=5)
+        ttk.Button(bar, text="浏览...", command=self.browse_folder_weather).pack(side="left", padx=3)
+        ttk.Button(bar, text="✨ 生成 TXT 文件", command=self.generate_weather_alert,
+                   style="Accent.TButton").pack(side="right", padx=5)
 
     # ========== 气象灾害风险提示单表单 ==========
     def build_risk_alert_form(self):
@@ -3676,6 +3791,18 @@ class ReportApp:
         ttk.Label(sig_row, text="    签发：", font=("微软雅黑", 12)).pack(side="left")
         self.risk_approver = ttk.Entry(sig_row, width=12, font=("微软雅黑", 12))
         self.risk_approver.pack(side="left", padx=2)
+
+        # ---- 保存栏（嵌入标签页底部） ----
+        sep = ttk.Separator(self.risk_scroll_frame, orient="horizontal")
+        sep.pack(fill="x", pady=(15, 5))
+        bar = ttk.Frame(self.risk_scroll_frame, padding=5)
+        bar.pack(fill="x")
+        ttk.Label(bar, text="保存目录：").pack(side="left")
+        self.entry_save_risk2 = ttk.Entry(bar, textvariable=self.risk_save_dir, width=32)
+        self.entry_save_risk2.pack(side="left", padx=5)
+        ttk.Button(bar, text="浏览...", command=self.browse_folder_risk).pack(side="left", padx=3)
+        ttk.Button(bar, text="📄 生成 Word 文档", command=self.generate_risk_alert,
+                   style="Accent.TButton").pack(side="right", padx=5)
 
     # ========== 表2 行管理 ==========
     def _add_risk_t2_row(self):
@@ -3932,27 +4059,20 @@ class ReportApp:
 
     # ========== 标签页切换 ==========
     def on_tab_changed(self, event):
+        try:
+            self._do_tab_changed(event)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            messagebox.showerror("标签页切换错误", f"{e}")
+
+    def _do_tab_changed(self, event):
         tab_id = self.notebook.select()
         tab_text = self.notebook.tab(tab_id, "text")
-        self.save_bar_pre.pack_forget()
-        self.save_bar_live.pack_forget()
-        self.save_bar_weather.pack_forget()
-        self.save_bar_risk.pack_forget()
-        self.save_bar_lzy.pack_forget()
+        # 所有保存栏已嵌入各标签页内部，root 级栏不再使用
         self.right_frame.pack_forget()
-        if "首页" in tab_text or "叫应名单" in tab_text or "服务记录" in tab_text:
-            pass  # 首页/叫应名单/服务记录：隐藏所有底栏和站点面板
-        elif "天气提醒" in tab_text:
-            self.save_bar_weather.pack(fill="x", padx=10, pady=(5, 10))
-        elif "气象灾害" in tab_text:
-            self.save_bar_risk.pack(fill="x", padx=10, pady=(5, 10))
-        elif "预通报" in tab_text:
-            self.save_bar_pre.pack(fill="x", padx=10, pady=(5, 10))
-        elif "实况通报" in tab_text:
+        if "实况通报" in tab_text:
             self.right_frame.pack(side="right", fill="y", padx=(10, 0))
-            self.save_bar_live.pack(fill="x", padx=10, pady=(5, 10))
-        elif "两直一白" in tab_text:
-            self.save_bar_lzy.pack(fill="x", padx=10, pady=(5, 10))
 
     # ========== 预通报 TXT 生成 ==========
     def generate_pre_report(self):
