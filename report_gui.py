@@ -994,44 +994,50 @@ class ReportApp(ServiceRecordMixin, HomepageMixin, CallListMixin, LiangzhiyibaiM
 
     def generate_live_report(self):
         try:
-            title1 = self.entry_title1.get().strip()
-            title2 = self.entry_title2.get().strip()
-            sys_1h = self.cb_1h_system.get().strip()
-            weather_1h = self.cb_1h_weather.get().strip()
-            avg_1h = self.entry_1h_avg.get().strip()
-            stations_1h = [(e[0].get().strip(), e[1].get().strip()) for e in self.entries_1h_stations]
+            # 优先使用手动编辑框内容
+            manual = self.live_manual_text.get("1.0", "end-1c").strip()
+            if manual:
+                full_text = manual
+                wrapped = textwrap.fill(full_text, width=70, break_long_words=False, replace_whitespace=False)
+            else:
+                title1 = self.entry_title1.get().strip()
+                title2 = self.entry_title2.get().strip()
+                sys_1h = self.cb_1h_system.get().strip()
+                weather_1h = self.cb_1h_weather.get().strip()
+                avg_1h = self.entry_1h_avg.get().strip()
+                stations_1h = [(e[0].get().strip(), e[1].get().strip()) for e in self.entries_1h_stations]
 
-            avg_3h = self.entry_3h_avg.get().strip()
-            stations_3h = [(e[0].get().strip(), e[1].get().strip()) for e in self.entries_3h_stations]
-            max_sta_3h = self.cb_3h_max_sta.get().strip()
-            max_val_3h = self.entry_3h_max_val.get().strip()
-            wind_sta_3h = self.cb_3h_wind_sta.get().strip()
-            wind_speed_3h = self.entry_3h_wind_speed.get().strip()
-            wind_scale_3h = self.entry_3h_wind_scale.get().strip()
+                avg_3h = self.entry_3h_avg.get().strip()
+                stations_3h = [(e[0].get().strip(), e[1].get().strip()) for e in self.entries_3h_stations]
+                max_sta_3h = self.cb_3h_max_sta.get().strip()
+                max_val_3h = self.entry_3h_max_val.get().strip()
+                wind_sta_3h = self.cb_3h_wind_sta.get().strip()
+                wind_speed_3h = self.entry_3h_wind_speed.get().strip()
+                wind_scale_3h = self.entry_3h_wind_scale.get().strip()
 
-            fc_time = self.entry_fc_time.get().strip()
-            fc_weather = self.entry_fc_weather.get().strip()
-            fc_rain1 = self.entry_fc_rain1.get().strip()
-            fc_rain2 = self.entry_fc_rain2.get().strip()
+                fc_time = self.entry_fc_time.get().strip()
+                fc_weather = self.entry_fc_weather.get().strip()
+                fc_rain1 = self.entry_fc_rain1.get().strip()
+                fc_rain2 = self.entry_fc_rain2.get().strip()
 
-            head = f"【{title1}:{title2}实况通报】"
-            p1 = (f"受{sys_1h}影响，近1小时，龙港市出现{weather_1h}，"
-                  f"全市面雨量{avg_1h}毫米；"
-                  f"单站总雨量前三分别为{stations_1h[0][0]}{stations_1h[0][1]}毫米、"
-                  f"{stations_1h[1][0]}{stations_1h[1][1]}毫米、"
-                  f"{stations_1h[2][0]}{stations_1h[2][1]}毫米。")
-            part1 = head + p1
-            p3 = (f"近3小时，全市面雨量{avg_3h}毫米；"
-                  f"单站总雨量前三分别为{stations_3h[0][0]}{stations_3h[0][1]}毫米、"
-                  f"{stations_3h[1][0]}{stations_3h[1][1]}毫米、"
-                  f"{stations_3h[2][0]}{stations_3h[2][1]}毫米。"
-                  f"单站1小时雨量最大出现在{max_sta_3h}{max_val_3h}毫米。"
-                  f"风力最大出现在{wind_sta_3h}{wind_speed_3h}米/秒（{wind_scale_3h}级）。")
-            p4 = (f"【临近预报】预计未来{fc_time}小时，龙港市仍有{fc_weather}，"
-                  f"雨量{fc_rain1}-{fc_rain2}毫米。")
+                head = f"【{title1}:{title2}实况通报】"
+                p1 = (f"受{sys_1h}影响，近1小时，龙港市出现{weather_1h}，"
+                      f"全市面雨量{avg_1h}毫米；"
+                      f"单站总雨量前三分别为{stations_1h[0][0]}{stations_1h[0][1]}毫米、"
+                      f"{stations_1h[1][0]}{stations_1h[1][1]}毫米、"
+                      f"{stations_1h[2][0]}{stations_1h[2][1]}毫米。")
+                part1 = head + p1
+                p3 = (f"近3小时，全市面雨量{avg_3h}毫米；"
+                      f"单站总雨量前三分别为{stations_3h[0][0]}{stations_3h[0][1]}毫米、"
+                      f"{stations_3h[1][0]}{stations_3h[1][1]}毫米、"
+                      f"{stations_3h[2][0]}{stations_3h[2][1]}毫米。"
+                      f"单站1小时雨量最大出现在{max_sta_3h}{max_val_3h}毫米。"
+                      f"风力最大出现在{wind_sta_3h}{wind_speed_3h}米/秒（{wind_scale_3h}级）。")
+                p4 = (f"【临近预报】预计未来{fc_time}小时，龙港市仍有{fc_weather}，"
+                      f"雨量{fc_rain1}-{fc_rain2}毫米。")
 
-            full_text = part1 + "\n" + p3 + "\n" + p4
-            wrapped = textwrap.fill(full_text, width=70, break_long_words=False, replace_whitespace=False)
+                full_text = part1 + "\n" + p3 + "\n" + p4
+                wrapped = textwrap.fill(full_text, width=70, break_long_words=False, replace_whitespace=False)
 
             now_str = datetime.now().strftime("%Y%m%d%H%M")
             filename = f"{now_str}实况通报.txt"
@@ -1057,15 +1063,16 @@ class ReportApp(ServiceRecordMixin, HomepageMixin, CallListMixin, LiangzhiyibaiM
             except Exception:
                 pass
 
-            # 自动填入服务记录表格
-            try:
-                self.add_service_row(
-                    time_val=f"{title1}:{title2}",
-                    item_val="实况通报",
-                    content_val=full_text,
-                )
-            except Exception:
-                pass
+            # 自动填入服务记录表格（手动编辑模式跳过）
+            if not manual:
+                try:
+                    self.add_service_row(
+                        time_val=f"{title1}:{title2}",
+                        item_val="实况通报",
+                        content_val=full_text,
+                    )
+                except Exception:
+                    pass
 
             messagebox.showinfo("成功", f"文件已生成：\n{save_path}")
 

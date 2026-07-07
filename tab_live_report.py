@@ -34,6 +34,14 @@ class LiveReportMixin:
             ff.pack(fill="x", pady=(0, 8))
             self._build_forecast(ff)
     
+            # ---- 手动编辑大文本框 ----
+            f_manual = ttk.LabelFrame(self.live_scroll_frame, text="手动编辑通报（非空时优先使用此内容生成 TXT）", padding=8)
+            f_manual.pack(fill="x", pady=(0, 8))
+            self.live_manual_text = tk.Text(f_manual, font=("微软雅黑", 12), wrap=tk.WORD,
+                                             relief="solid", borderwidth=1, padx=8, pady=8,
+                                             height=10)
+            self.live_manual_text.pack(fill="both", expand=True)
+    
             # ---- 保存栏（嵌入标签页底部） ----
             sep = ttk.Separator(self.live_scroll_frame, orient="horizontal")
             sep.pack(fill="x", pady=(15, 5))
