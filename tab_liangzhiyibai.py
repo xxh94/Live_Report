@@ -236,7 +236,9 @@ class LiangzhiyibaiMixin:
                 vals = [row.get(col, "") for col in self.lzy_columns]
                 self.lzy_tree.insert("", tk.END, values=vals)
             if self.lzy_rows:
-                self.lzy_tree.configure(height=min(len(self.lzy_rows) + 2, 16))
+                self.lzy_tree.configure(height=len(self.lzy_rows))
+            else:
+                self.lzy_tree.configure(height=4)
     
         def _lzy_delete_rows(self):
             """删除选中行"""
@@ -461,8 +463,8 @@ class LiangzhiyibaiMixin:
                                         pass
                             break
     
-            # 序号的起始值至少从表格现有行数+1开始（表头占第1行）
-            next_seq = max(last_seq + 1, max_row) if max_row > 1 else last_seq + 1
+            # 序号从上次最后序号 +1 开始
+            next_seq = last_seq + 1
             for ri, row_data in enumerate(self.lzy_rows):
                 row_data["序号"] = str(next_seq + ri)
     
