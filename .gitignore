@@ -30,3 +30,6 @@ para_text_output.txt
 # OS
 Thumbs.db
 Desktop.ini
+node_modules/
+package.json
+package-lock.json
