@@ -325,11 +325,15 @@ class LiangzhiyibaiMixin:
             self._lzy_target_file = target
     
             import shutil
+            import sys
     
             NS = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'
     
-            template = os.path.join(self.app_dir, "两直一白.xlsx")
-    
+            # 打包后模板在 _MEIPASS，源码运行时在 app_dir
+            if getattr(sys, "frozen", False):
+                template = os.path.join(sys._MEIPASS, "两直一白.xlsx")
+            else:
+                template = os.path.join(self.app_dir, "两直一白.xlsx")
             if not os.path.exists(target):
                 # 首次：复制模板
                 if os.path.exists(template):
